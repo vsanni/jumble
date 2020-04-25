@@ -3,16 +3,8 @@ Created on Sat Nov 15 16:57:25 2014
 
 @author: vsanni
 """
+
 from __future__ import print_function
-
-__author__     = "Virginio Sannibale"
-__email__      = "vsannibaleb@chromologic.com"
-__copyright__  = "Copyright 2014, Chromologic LLC"
-
-__license__    = "None"
-__version__    = "None"
-__date__       = "11/14/2018"
-__status__     = "Development"
 
 import os
 from math import sqrt
@@ -20,14 +12,18 @@ from math import sqrt
 import matplotlib.pyplot as pl
 
 from matplotlib import _pylab_helpers
-import jumble.file_location as fln
+import jumble.file_location as floc
 from jumble.Miscellany import vprint
 from jumble.type_extra import length
 
+import seaborn as sns
+sns.set(style="darkgrid")
 
 
 def current():
-    """Get figure reference to the current figure if exist."""
+    """
+    Gets figure reference to the current figure if exist.
+    """
 
     figures_manager = _pylab_helpers.Gcf.get_active()
     if figures_manager is not None: return figures_manager.canvas.figure
@@ -78,11 +74,7 @@ def export(figure=None, file_location="", formats=[ "png"], dpi=200, verbose=1, 
 
     if figure is None: figure= current()
 
-    if figure is None:  raise ValueError("couldn't find any current figure to export")
-
-    Path = fln.path(file_location)
-
-    if not os.path.exists(Path) and Path != "" : os.makedirs(Path)
+    if figure is None:  raise ValueError("figures.export: error, couldn't find any current figure to export")
 
     if image_only:
         axis         = current_axis(figure)
@@ -94,8 +86,13 @@ def export(figure=None, file_location="", formats=[ "png"], dpi=200, verbose=1, 
 
     figure.tight_layout()
 
+    file_location = floc.good( file_location, replacement=".")
+
+    path = floc.path(file_location)
+    if not os.path.exists(path) and path != "" : os.makedirs(path)
+
     for e in formats:
-        fl = "%s.%s" % (file_location, e.lower())
+        fl = floc.good("%s.%s" % (file_location, e.lower()))
         vprint(verbose,1,"export: printing figure into \"%s\"..." % fl)
         figure.savefig(fl, dpi=dpi, bbox_inches=bounding_box)
         vprint(verbose,1," done\n")
@@ -110,7 +107,7 @@ def set_title(figure=None, title=""):
         figure.canvas.set_window_title(title)
 
     else:
-        raise ValueError("couldn't find any current figure to set its title")
+        raise ValueError("figures.set_title: couldn't find any current figure to set its title")
 
 
 
@@ -120,3 +117,37 @@ def current_axis(figure=None):
 
     if figure is not None: return figure._axstack.current_key_axes()[1]
     else                 : return None
+
+
+
+def draw(figure=None):
+
+    if figure is None: figure = current()
+
+    figure.canvas.draw()
+
+
+
+def figure_axis_resolve(axis=None,*v, **kv):
+    
+    if "figsize" not in kv.keys(): kv["figsize"] = (9.5,5)
+    
+    if axis is None: return axes(*v,**kv)
+    else           : return current(), axis
+    
+
+
+def plot(x=None,y=None, axis= None, xlabel = None, ylabel= None, title= None, **kv):
+    
+    fig, ax = figure_axis_resolve(axis,figsize=(9.5,5))
+    
+    if x is None: ax.plot(y, **kv)
+    else        : ax.plot(x, y, **kv)
+    ax.grid(True)
+
+    if "label" in kv.keys(): ax.legend()
+    if xlabel is not None  : ax.set_xlabel(xlabel)
+    if ylabel is not None  : ax.set_ylabel(ylabel)
+    if title  is not None  : ax.set_title(title)
+
+    return fig, ax
