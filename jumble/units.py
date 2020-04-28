@@ -7,6 +7,8 @@ Created on Fri May  3 14:48:05 2019
 import re
 import numpy as np
 from math import log10, floor, isnan
+from jumble.latex import translate_measure
+
 
 def order_of_magnitude(x):
 
@@ -23,7 +25,7 @@ def dBm(x): return 10*np.log10(x) + 30.0 # ref to 1 mW
 def dBu(x): return 10*np.log10(x) + 60.0 # ref to 1 uW
 
 
-def idB(X) : return 10.0**(np.asarray(X)/10.0)    # ref to 1 W
+def idB(X) : return 10.0**(np.asarray(X)/10.0)   # ref to 1 W
 def idBm(X): return 10.0**(np.asarray(X)/10.0-3) # ref to 1 mW
 def idBu(X): return 10.0**(np.asarray(X)/10.0-6) # ref to 1 uW
 
@@ -148,7 +150,7 @@ def time_convert(t, standard_prefix=False):
 
 
 
-def prefixed(x, units, mode="avg"):
+def prefixed(x, units, mode="avg", latex=False):
 
     x = np.asarray(x)
 
@@ -172,6 +174,9 @@ def prefixed(x, units, mode="avg"):
     else:
         raise ValueError("units.prefixed: error, cannot recognize mode "+str(mode) )
 
+    if latex:
+        if prefixed_units[0] == "u": prefixed_units = "\\mu "+prefixed_units[1:]
+
     return prefixed_units, iprefix_factor, om
 
 
@@ -191,7 +196,7 @@ def standard_convert(x, units="", standard_units=""):
 
 
 
-def measure(name, x, sx, significant_digits, units, scientific_notation_digits_threshold=3, prefix=True):
+def measure(name, x, sx, significant_digits, units, scientific_notation_digits_threshold=3, prefix_units=True, latex=False):
 
     def number_format(dec): return "%." + str(dec) + "f" if dec >=0  else "%.f"
 
@@ -210,7 +215,7 @@ def measure(name, x, sx, significant_digits, units, scientific_notation_digits_t
         x  = round( x, dec)
         sx = round(sx, dec)
 
-        if prefix:
+        if prefix_units:
             c_prefix, sf, om = prefix(x)
             x               *= sf
             sx              *= sf
@@ -218,14 +223,19 @@ def measure(name, x, sx, significant_digits, units, scientific_notation_digits_t
 
             s    = number_format(dec+om-1)
             frmt = "%s = ( "+s+" +- " +s+ ") %s"
-            return frmt % (name, x, sx , units)
+            s    = frmt % (name, x, sx , units)
 
         elif  -scientific_notation_digits_threshold < n < scientific_notation_digits_threshold:
             s    = number_format(dec)
             frmt = "%s = ( "+s+" +- " +s+ ") %s"
-            return frmt % (name, x, sx , units)
+            s    = frmt % (name, x, sx , units)
 
         else:
             s    = number_format(dec+n)
             frmt = "%s = ( "+s+" +- " +s+ ") x 10^%d %s"
-            return frmt % (name, x/10**n, sx/10**n, n, units)
+            s    = frmt % (name, x/10**n, sx/10**n, n, units)
+
+
+    if latex: s = translate_measure(s)
+
+    return s
