@@ -31,25 +31,46 @@ def length(x):
         return 0
 
 
-
-def is_numeric(x):
-    try   :  x/1.0;  return True
-    except:          return False
-
+def index(s,t):
+    try   : return s.index(t)
+    except: return None
 
 
-def is_numeric_string(x):
-    try   :  float(x)/1.0;  return True
+
+def rindex(s,t):
+    try   : return s.rindex(t)
+    except: return None
+
+
+
+def is_numeric(x, evaluate=False):
+    if evaluate:
+        try   :float(eval(x)); return True
+        except:                return False
+    else:
+        try   :  x/1.0;  return True
+        except:          return False
+
+
+
+def is_numeric_string(s):
+    try   :  float(s)/1.0;  return True
     except:                 return False
 
 
 
 def is_complex(x): return np.iscomplexobj(x)
 
-def is_even(x)   : return  x % 2 == 0
+def is_even(x)   : return x % 2 == 0
 
 def is_odd(x)    : return x % 2 != 0
 
+def is_whole(x)  : return x % 1 == 0
+
+
+def is_iterable(x):
+    try   :  iter(x);  return True
+    except:            return False
 
 
 def convert_float(x):
@@ -74,6 +95,13 @@ def as_list(v, n=1):
     else                 : return [v]*n
 
 
+def is_numeric_string_list(v, evaluate=False):
+
+    for s in v:
+        if not is_numeric_string(s, evaluate): return False
+
+    return True
+
 
 def list_exact_find(list_, t, mode='all'):
 
@@ -96,6 +124,11 @@ def list_find(list_, t, mode='all'):
     elif mode.lower() == 'all'  : return found
     else                        : raise Exception("list_exact_find: unknown search mode, valid modes are \"first\", \"all\", or \"last\"" )
 
+
+
+def list_to_string(list_, quotes="\"", separator=", "):
+    s = quotes+separator+quotes
+    return quotes+s.join([str(v) for v in list_])+quotes
 
 
 def range_distribute(n,p):
@@ -132,15 +165,59 @@ def key_valid(Key, Replacement=""):
     return s
 
 
-def string_to_value(s):
+
+def keys_check(d, mandatory_keys):
+
+    for key in mandatory_keys:
+        if isinstance(key, list):
+            found = 0
+            for k in key:
+              if k in d.keys(): found +=1
+
+            if found == 0:
+              return "mandatory key/field not properly defined, one and only one of those mutually exclusive field %s should be defined." %  list_to_string(key)
+
+            elif found > 1:
+              return "mandatory key/field not properly defined, only one of the follwing should be defined." %  list_to_string(key)
+        elif key not in d.keys():
+            return "mandatory data fields not properly defined, field \"%s\" is missing." %  key
+
+    return None
+
+
+
+def string_to_value(s, evaluate=False):
+
     s= s.strip()
-    if is_numeric_string(s):
-        vf = float(s)
-        vi = int(s)
-        if vf == vi: return vi
-        else       : return vf
+    if evaluate:
+        try:
+            vf = float(eval(s))
+            vi = int(vf)
+            return vf if vi != vf else vi
+        except:
+            return s
+
+    elif is_numeric_string(s):
+        vf, _ = convert_float(s)
+        vi, _ = convert_int(s)
+        return vf if vi is None else vi
     else:
         return s
+
+
+def string_to_value_list(s,separator=None, evaluate=False, return_flag = False):
+
+    if not return_flag:
+        return [string_to_value(t,evaluate) for t in s.strip().split(separator)]
+    else:
+        L=[]
+        all_values = True
+        for t in s.strip().split(separator):
+            x = string_to_value(t,evaluate)
+            L.append(x)
+            if isinstance(x, str): all_values = False
+
+        return L, all_values
 
 
 def string_abbreviate( s, n, where="Start", abbreviation_string="..."):
@@ -173,3 +250,19 @@ def keys_pascal_case(d): return { k.title().replace("_","") : v for k,v in d.ite
 def time_stamp_hour2seconds(HourTimeStamp):
     x = time.strptime(HourTimeStamp,'%H:%M:%S')
     return datetime.timedelta(hours=x.tm_hour,minutes=x.tm_min,seconds=x.tm_sec).total_seconds()
+
+
+
+def mantissa(x):
+    return np.floor(np.log10(np.abs(x))).astype(int)
+
+
+def dict_keys_string(d, quotes="\"", separator=", "):
+    s = quotes+separator+quotes
+    return quotes+s.join([str(k) for k in d.keys()])+quotes
+
+
+def dict_values_string(d, quotes="\"", separator=", "):
+    s = quotes+separator+quotes
+
+    return quotes+s.join([str() for v in d.values()])+quotes
