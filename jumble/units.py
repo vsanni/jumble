@@ -83,9 +83,33 @@ def idBu(X): return 10.0**(np.asarray(X)/10.0-6) # ref to 1 uW
 
 #%% cm^-1 units
 def m_to_cm_1(x): return .01/x
-
 def cm_1_to_m(x): return .01/x
     
+#%%
+def m_to_mils(x): return x/25.4e-6
+def mils_to_m(x): return x*25.4e-6
+
+#%%
+"""
+def atm2bar(x):  return x * 1.01325
+def bar2atm(x): return x / 1.01325
+"""
+
+#                                  Pa           bar                   Torr                     atm                   psi
+def convert_pressure(x, old_units, new_units):
+    pressure_conv_mat = np.array([
+                                  [1.0          , 1/1.0e5             , 760./101325.0          , 1/101325.0      , 0.000145038             ], #Pa
+                                  [1.0e5        , 1.0                 , 760./101325.0*1.0e5    , 1/101325.0*1.0e5, 0.000145038*1.0e5       ], #bar
+                                  [101325.0/760 , 1/1.0e5*101325.0/760, 1.0                    , 1/760.0         , 0.000145038*101325.0/760], #Torr
+                                  [101325.0     , 1/1.0e5*101325.0    , 760.0                  , 1.0             , 0.000145038*101325.0    ], #atm
+                                  [1/0.000145038, 1/1.0e5/0.000145038 , 760./101325.0          , 1/101325.0      , 1.0                     ], #psi
+                                 ]) 
+    
+        
+    d = {"Pa":0, "bar":1, "Torr":2, "atm":3, "psi":4}
+
+    return np.asarray(x) * pressure_conv_mat[d[old_units], d[new_units]]
+ 
 
 #%% find stuff
 def find_base(s):
@@ -191,7 +215,6 @@ def _prefixed_base_value(x, mode="range"):
 
 
 def _prefixed_time(t, mode, standard_units):
-
     """
     Synopsis: units, scale_factor, order_of_mag = prefixed_time(t)
 
