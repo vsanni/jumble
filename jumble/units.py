@@ -6,29 +6,10 @@ Created on Fri May  3 14:48:05 2019
 
 import re
 import numpy as np
+
 from math import log10, floor, isnan
 from jumble.latex import translate_measure
-
-
-def order_of_magnitude(x):
-
-    if   x == 0  : return 0
-    elif isnan(x): return 0
-    else         : return int(floor(log10(abs(x))))
-
-
-
-#dB ALWAYS RATIO OF POWERS!
-
-def dB(x) : return 10*np.log10(x)        # ref to 1 W
-def dBm(x): return 10*np.log10(x) + 30.0 # ref to 1 mW
-def dBu(x): return 10*np.log10(x) + 60.0 # ref to 1 uW
-
-
-def idB(X) : return 10.0**(np.asarray(X)/10.0)   # ref to 1 W
-def idBm(X): return 10.0**(np.asarray(X)/10.0-3) # ref to 1 mW
-def idBu(X): return 10.0**(np.asarray(X)/10.0-6) # ref to 1 uW
-
+import jumble.type_extra as tye
 
 def _prefixed_dict_create(symbols, prefixes, standard_units = True, reciprocal=False):
     d = dict()
@@ -45,63 +26,174 @@ def _prefixed_dict_create(symbols, prefixes, standard_units = True, reciprocal=F
 
     return d
 
-prefixes                 = {"p": 1.0e-12, "n": 1.0e-9, "u": 1.0e-6, "m": 1.0e-3, "_": 1.0, "k": 1.0e+3, "M": 1.0e+6, "G": 1.0e+9, "T": 1.0e+12, "E": 1.0e+15}
-symbols                  = ["Hz", "W", "A", "V", "s", "m", "rad", "H", "F", "Ohms"]
+
+prefixes_keys            = ("y", "z", "a", "f", "p", "n", "u", "m", "_", "k", "M", "G", "T", "P", "E", "Z", "Y")
+prefixes                 = {k:10.0**n for n,k in zip(range(-24,len(prefixes_keys)*3,3),prefixes_keys) }
+
+symbols                  = ["g", "Hz", "W", "A", "V", "s", "m", "rad", "H", "F", "Ohms"]
+symbols_exception        = ["cm-1", "dBm", "dBu", "dBc", "dB", "min.", "hrs.", "days", "weeks", "mo", "m." ]
+
 prefixed_dict            = _prefixed_dict_create(symbols, prefixes)
 prefixed_reciprocal_dict = _prefixed_dict_create(symbols, prefixes, reciprocal=True)
 
-vars().update(prefixed_dict)
-vars().update(prefixed_reciprocal_dict)
+solar_year = 365*24*3600+5*3600+48*60+46.0 #Solar year: 65 days 5 hours 48 minutes46 seconds
+time_dict = {"min"     : 60.,
+            "hour"     : 3600.,
+            "day"      : 86400.,
+            "week"     : 604800.,
+            "month"    : 2592000.,
+            "year"     : solar_year,
+            "decade"   : solar_year*10.,
+            "century"  : solar_year*100.,
+            "millenium": solar_year*1000.,
+            "hrs"      : 3600.,
+            "mo."      : 2592000.,
+            "yr."      : solar_year,
+            "c."       : solar_year*100.,
+            "m."       : solar_year*1000.,
+            }
+
 
 rad_2_deg = 180.0/np.pi
 deg_2_rad = np.pi/180.0
 
-def conversion_factor(s, reciprocal=False):
-
-    D = prefixed_reciprocal_dict if reciprocal else prefixed_dict
-    for k,v in D.items():
-        if k in s: return v
-
-    raise ValueError("units.conversion_factor: cannot determine units conversion factor from "+str(s) )
+vars().update(prefixed_dict)
+vars().update(prefixed_reciprocal_dict)
 
 
 
-def find(s, reg_expr_format = None):
+def order_of_magnitude(x):
 
-    for k,v in prefixed_dict.items():
-        if reg_expr_format is None:
-            if k in s: return k, v
-        else:
-            if re.findall(reg_expr_format % k, s ) != []: return k, v
-
-    raise ValueError("units.find: cannot find any known  basic units from \"%s\"" % s )
+    if   x == 0  : return 0
+    elif isnan(x): return 0
+    else         : return int(floor(log10(abs(x))))
 
 
+
+#%%dB ALWAYS RATIO OF POWERS!
+
+def dB(x) : return 10*np.log10(x)        # ref to 1 W
+def dBm(x): return 10*np.log10(x) + 30.0 # ref to 1 mW
+def dBu(x): return 10*np.log10(x) + 60.0 # ref to 1 uW
+
+
+def idB(X) : return 10.0**(np.asarray(X)/10.0)   # ref to 1 W
+def idBm(X): return 10.0**(np.asarray(X)/10.0-3) # ref to 1 mW
+def idBu(X): return 10.0**(np.asarray(X)/10.0-6) # ref to 1 uW
+
+#%% cm^-1 units
+def m_to_cm_1(x): return .01/x
+
+def cm_1_to_m(x): return .01/x
+    
+
+#%% find stuff
+def find_base(s):
+ 
+    n = len(s)
+    for se in symbols_exception+symbols:
+        m = len(se)        
+        if s[max(0,n-m):] == se: return se
+
+    return None
+
+
+
+def find_prefix_factor(s):
+    if   s in prefixes.keys(): return prefixes[s]
+    else                     : return None
+
+
+
+def find(s, pre_reg_expr=None, post_reg_expr=None):
+    
+    if pre_reg_expr  is not None and post_reg_expr is not None: reg_expr = pre_reg_expr+"%s"+post_reg_expr 
+    elif pre_reg_expr  is not None                            : reg_expr = pre_reg_expr+"%s"
+    elif post_reg_expr is not None                            : reg_expr = "%s"+post_reg_expr
+    else                                                      : reg_expr = "%s"
+
+    for k in prefixed_dict.keys():
+        if re.findall(reg_expr % k, s ) != []: return k
+
+    return None
+
+
+
+def breakdown(s, pre_reg_expr=None, post_reg_expr=None):
+    
+    if pre_reg_expr  is not None or post_reg_expr is not None: 
+       s= find(s, pre_reg_expr, post_reg_expr)
+       if s is None: 
+           raise ValueError("units.breakdown: error, cannot recognize units \""+str(s)+"\"")
+
+    base_unit = find_base(s)
+    if base_unit is None:
+        raise ValueError("units.breakdown: error, cannot recognize units \""+str(s)+"\"")
+    
+    prefix    = s[:-len(base_unit)]
+    if prefix == ""               : prefix_factor = 1 
+    elif prefix in prefixes.keys(): prefix_factor = prefixes[prefix]
+    
+    return base_unit, prefix, prefix_factor    
+    
+
+
+#%% convert units
+
+def convert(x, old_units="", new_units=""):
+
+    o_bu, o_px, o_sf = breakdown(old_units)
+    n_bu, n_px, n_sf = breakdown(new_units)
+    
+    sf = o_sf/n_sf
+    
+    if   o_bu == "dB"   and n_bu == "W"   : return  idB(x)*sf
+    elif o_bu == "dBm"  and n_bu == "W"   : return idBm(x)*sf
+    elif o_bu == "dBu"  and n_bu == "W"   : return idBu(x)*sf
+    elif o_bu == "W"    and n_bu == "dB"  : return  dB(np.asarray(x)*sf)
+    elif o_bu == "W"    and n_bu == "dBm" : return dBm(np.asarray(x)*sf)
+    elif o_bu == "W"    and n_bu == "dBu" : return dBu(np.asarray(x)*sf)
+    elif o_bu == "cm-1" and n_bu == "m"   : return cm_1_to_m(x)*sf
+    elif o_bu == "m"    and n_bu == "cm-1": return m_to_cm_1(x*sf)
+    elif o_bu == n_bu                     : return np.asarray(x)*sf
+    else:
+        raise ValueError("units.convert: error, cannot conver "+str(old_units)+" to "+str(new_units))
+
+
+
+#%% prefix
 
 def prefix(x):
 
     om = order_of_magnitude(x)
 
-    if           om < -12: k ="p"
-    elif  -12 <= om <  -9: k ="p"
-    elif  -9  <= om <  -6: k ="n"
-    elif  -6  <= om <  -3: k ="u"
-    elif  -3  <= om <   0: k ="m"
-    elif   0  <= om <   3: k ="_"
-    elif   3  <= om <   6: k ="k"
-    elif   6  <= om <   9: k ="M"
-    elif   9  <= om <  12: k ="G"
-    elif  12  <= om <  15: k ="T"
-    elif  15  <= om      : k ="E"
+    n     = (om+24) // 3
+    n_max = len(prefixes_keys)-1
+    if    n < 0    : n = 0
+    elif  n > n_max: n =n_max
 
-    return k if k != "_" else "", 1/prefixes[k], om
+    k = prefixes_keys[n]
+    
+    return k if k != "_" else "", 1/prefixes[k], om 
 
 
 
-def time_convert(t, standard_prefix=False):
+def _prefixed_base_value(x, mode="range"):
+
+    def range_(x):
+        if tye.is_iterable(x): return .5*(x[0]+x[-1])
+        else                 : return x
+        
+    prefix_function = {"avg": np.mean, "min": np.min, "max": np.max, "range": range_}
+
+    return prefix_function[mode](x)
+
+
+
+def _prefixed_time(t, mode, standard_units):
 
     """
-    Synopsis: units, scale_factor = time_scaled(t)
+    Synopsis: units, scale_factor, order_of_mag = prefixed_time(t)
 
     Input:
             t   time value to be scaled to the approriate units
@@ -113,128 +205,86 @@ def time_convert(t, standard_prefix=False):
                 'us'          microseconds
                 'ms'          milliseconds
                 's'           seconds
-                'minutes'     minutes
-                'hours'       hours
+                'min'         minutes
+                'hrs'         hours
                 'days'        days
                 'weeks'       weeks
-                'years'       years
+                'mo.'         months
+                'yr.'         years
                 'c.'          centuries
                 'm.'          millenia
 
-            scale_factor       scale factor to adjust the time t
+            scale_factor       scale factor to multiply the time t to adjust for the new units
     """
 
-    min_      =        60.
-    hour      =      3600.
-    day       =     86400.
-    week      =    604800.
-    month     =   2592000.
-    year      = 365*24*3600+5*3600+48*60+46.0  #Solar year: 65 days 5 hours 48 minutes	46 seconds
-    decade    =    year*10.
-    century   =  decade*10.
-    millenium = century*10.
+    d = time_dict
 
-    if   t <  min_*10 or  standard_prefix: units, sf, om = prefix(t) ; units += "s"
-    elif t >= min_*10 and t < hour*6     : units, sf     = 'minutes', 1/min_
-    elif t >= hour*6  and t < day*4      : units, sf     = 'hours'  , 1/hour
-    elif t >= day*4   and t < week*4     : units, sf     = 'days'   , 1/day
-    elif t >= week*4  and t < month*4    : units, sf     = 'weeks'  , 1/week
-    elif t >= month*4 and t < year       : units, sf     = 'months' , 1/month
-    elif t >= year    and t < century    : units, sf     = 'years'  , 1/year
-    elif t >= century and t < millenium  : units, sf     = 'c.'     , 1/century
-    else                                 : units, sf     = 'm.'     , 1/millenium
-
-    om = order_of_magnitude(t)
-
-    return units, sf, om
-
-
-
-def prefixed(x, units, mode="avg", latex=False):
-
-    x = np.asarray(x)
-
-    frequency_prefix_mode = {"avg": np.mean, "min": np.min, "max": np.max}
-
-    if   mode in frequency_prefix_mode.keys():
-        x  = frequency_prefix_mode[mode](x)
-        if units == "s":
-            prefixed_units, iprefix_factor, om = time_convert(x)
-
-        else:
-            s, iprefix_factor, om = prefix(x)
-            prefixed_units        = s+units
-
-    elif mode in ["_","none",""]:
-        prefixed_units, iprefix_factor, om = units, 1.0, order_of_magnitude(np.mean(x))
-
-    elif mode in prefixes.keys():
-        prefixed_units, iprefix_factor, om = mode+units, 1/prefixes[mode], order_of_magnitude(np.mean(x))
+    t0 = _prefixed_base_value(t, mode)
+    
+    if t0 < d["min"]*10 or  standard_units: 
+        prefixed_units, prefix_factor, om = prefix(t0)
+        prefixed_units += "s"
 
     else:
-        raise ValueError("units.prefixed: error, cannot recognize mode "+str(mode) )
+        if   t0 >= d["min"    ]*10 and t0 < d["hour"     ]*6 : prefixed_units = "min"
+        elif t0 >= d["hour"   ]*6  and t0 < d["day"      ]*4 : prefixed_units = "hrs"
+        elif t0 >= d["day"    ]*4  and t0 < d["week"     ]*4 : prefixed_units = "days"
+        elif t0 >= d["week"   ]*4  and t0 < d["month"    ]*4 : prefixed_units = "weeks"
+        elif t0 >= d["month"  ]*4  and t0 < d["year"     ]   : prefixed_units = "mo."
+        elif t0 >= d["year"   ]    and t0 < d["century"  ]   : prefixed_units = "yr."
+        elif t0 >= d["century"]    and t0 < d["millenium"]   : prefixed_units = "c."
+        else                                                 : prefixed_units = "m."
+        om            = order_of_magnitude(t0)
+        prefix_factor = 1/d[prefixed_units]
 
-    if latex:
+    return np.asarray(t)*prefix_factor, prefixed_units, prefix_factor, om
+
+
+
+def prefixed(x, units, mode="range", standard_units=True, latex=False):
+    
+    if units == "s":
+        prefixed_x, prefixed_units, prefix_factor, om = _prefixed_time(x, mode, standard_units)
+
+    else:
+        s, prefix_factor, om = prefix(_prefixed_base_value(x, mode))
+        prefixed_units       = s+units
+        prefixed_x           = np.asarray(x)*prefix_factor
+        
+    if latex: 
         if prefixed_units[0] == "u": prefixed_units = "\\mu "+prefixed_units[1:]
 
-    return prefixed_units, iprefix_factor, om
-
-
-
-def standard_convert(x, units="", standard_units=""):
-
-    if   units     == "dB"  and standard_units == "W"  : return idB(x)
-    elif units     == "dBm" and standard_units == "W"  : return idBm(x)
-    elif units     == "dBu" and standard_units == "W"  : return idBu(x)
-    elif units     == "W"   and standard_units == "dB" : return dB(x)
-    elif units     == "W"   and standard_units == "dBm": return dBm(x)
-    elif units     == "W"   and standard_units == "dBu": return dBu(x)
-    elif units     == standard_units                   : return x[:]
-    elif units[1:] == standard_units                   : return x*prefixes[units[0]]
-    else:
-        raise ValueError("units.standard_units: error, cannot recognize units "+str(units)+" or standard units "+str(standard_units))
+    return prefixed_x, prefixed_units, prefix_factor, om
 
 
 
 def measure(name, x, sx, significant_digits, units, scientific_notation_digits_threshold=3, prefix_units=True, latex=False):
 
-    def number_format(dec): return "%." + str(dec) + "f" if dec >=0  else "%.f"
+    def _format(dec, scientific_notation=False): 
+        s = "%." + str(dec) + "f" if dec >=0  else "%.f"    
+        if scientific_notation: return "%s = ( "+s+" +- " +s+ ") x 10^%d %s"
+        else                  : return "%s = ( "+s+" +- " +s+ ")"
 
     if sx is None:
-        s = "%g" % x
-        if   s.find("e") != -1: s = s.replace("e", "x10^").replace("+", "")
-        elif s.find("E") != -1: s = s.replace("E", "x10^").replace("+", "")
-        else                  : s = s
-
-        return "%s = %s %s" % (name, s, units)
+        s = ("%g" % x).lower().replace("e", "x10^").replace("+", "")        
+        s = "%s = %s %s" % (name, s, units)
 
     else:
-        n   =  order_of_magnitude(x)
-        dec = -order_of_magnitude(sx)-1+significant_digits
+        n   = order_of_magnitude(x)
+        dec = significant_digits-order_of_magnitude(sx)-1
 
         x  = round( x, dec)
         sx = round(sx, dec)
 
         if prefix_units:
             c_prefix, sf, om = prefix(x)
-            x               *= sf
-            sx              *= sf
-            units            = c_prefix+units
+            s                = _format(dec+om-1) % (name, x*sf, sx*sf, c_prefix+units)
 
-            s    = number_format(dec+om-1)
-            frmt = "%s = ( "+s+" +- " +s+ ") %s"
-            s    = frmt % (name, x, sx , units)
-
-        elif  -scientific_notation_digits_threshold < n < scientific_notation_digits_threshold:
-            s    = number_format(dec)
-            frmt = "%s = ( "+s+" +- " +s+ ") %s"
-            s    = frmt % (name, x, sx , units)
+        elif  -scientific_notation_digits_threshold < n < scientific_notation_digits_threshold:            
+            s = _format(dec) % (name, x, sx, units)
 
         else:
-            s    = number_format(dec+n)
-            frmt = "%s = ( "+s+" +- " +s+ ") x 10^%d %s"
-            s    = frmt % (name, x/10**n, sx/10**n, n, units)
-
+            s = _format(dec+n, scientific_notation=True) % (name, x/10**n, sx/10**n, n, units)
 
     if latex: s = translate_measure(s)
 
