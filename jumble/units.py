@@ -85,11 +85,11 @@ def idBu(X): return 10.0**(np.asarray(X)/10.0-6) # ref to 1 uW
 def m_to_cm_1(x): return .01/x
 def cm_1_to_m(x): return .01/x
     
-#%%
+#%% meters to mils
 def m_to_mils(x): return x/25.4e-6
 def mils_to_m(x): return x*25.4e-6
 
-#%%
+#%% pressure units conversion
 """
 def atm2bar(x):  return x * 1.01325
 def bar2atm(x): return x / 1.01325
@@ -174,11 +174,11 @@ def convert(x, old_units="", new_units=""):
     if   o_bu == "dB"   and n_bu == "W"   : return  idB(x)*sf
     elif o_bu == "dBm"  and n_bu == "W"   : return idBm(x)*sf
     elif o_bu == "dBu"  and n_bu == "W"   : return idBu(x)*sf
-    elif o_bu == "W"    and n_bu == "dB"  : return  dB(np.asarray(x)*sf)
-    elif o_bu == "W"    and n_bu == "dBm" : return dBm(np.asarray(x)*sf)
-    elif o_bu == "W"    and n_bu == "dBu" : return dBu(np.asarray(x)*sf)
-    elif o_bu == "cm-1" and n_bu == "m"   : return cm_1_to_m(x)*sf
-    elif o_bu == "m"    and n_bu == "cm-1": return m_to_cm_1(x*sf)
+    elif o_bu == "W"    and n_bu == "dB"  : return   dB(np.asarray(x)*sf)
+    elif o_bu == "W"    and n_bu == "dBm" : return  dBm(np.asarray(x)*sf)
+    elif o_bu == "W"    and n_bu == "dBu" : return  dBu(np.asarray(x)*sf)
+    elif o_bu == "cm-1" and n_bu == "m"   : return  cm_1_to_m(x)*sf
+    elif o_bu == "m"    and n_bu == "cm-1": return  m_to_cm_1(x*sf)
     elif o_bu == n_bu                     : return np.asarray(x)*sf
     else:
         raise ValueError("units.convert: error, cannot conver "+str(old_units)+" to "+str(new_units))
@@ -280,34 +280,44 @@ def prefixed(x, units, mode="range", standard_units=True, latex=False):
     return prefixed_x, prefixed_units, prefix_factor, om
 
 
-
-def measure(name, x, sx, significant_digits, units, scientific_notation_digits_threshold=3, prefix_units=True, latex=False):
+#%% measure
+def measure(name, x, sx=None, units="", significant_digits=4, scientific_notation_digits_threshold=3, prefix_units=True, latex=False):
 
     def _format(dec, scientific_notation=False): 
         s = "%." + str(dec) + "f" if dec >=0  else "%.f"    
-        if scientific_notation: return "%s = ( "+s+" +- " +s+ ") x 10^%d %s"
-        else                  : return "%s = ( "+s+" +- " +s+ ")"
+        if scientific_notation: return "%s = ("+s+" ± " +s+ ") x 10^%d %s"
+        else                  : return "%s = ("+s+" ± " +s+ ") %s"
 
     if sx is None:
         s = ("%g" % x).lower().replace("e", "x10^").replace("+", "")        
         s = "%s = %s %s" % (name, s, units)
 
-    else:
-        n   = order_of_magnitude(x)
-        dec = significant_digits-order_of_magnitude(sx)-1
-
-        x  = round( x, dec)
-        sx = round(sx, dec)
-
+    else:        
+        x_om  = order_of_magnitude(x)
+        sx_om = order_of_magnitude(sx)
+        sx    = round(sx,-(sx_om-significant_digits+1))
+        
         if prefix_units:
-            c_prefix, sf, om = prefix(x)
-            s                = _format(dec+om-1) % (name, x*sf, sx*sf, c_prefix+units)
+            c_prefix, sf, _ = prefix(x)
+            sx_om           = order_of_magnitude(sx*sf)
+            dec             = max(0, significant_digits-1-sx_om)
+            s               = _format(dec) % (name, x*sf, sx*sf, c_prefix+units)
 
-        elif  -scientific_notation_digits_threshold < n < scientific_notation_digits_threshold:            
-            s = _format(dec) % (name, x, sx, units)
+        elif  -scientific_notation_digits_threshold < x_om < scientific_notation_digits_threshold:            
+            dec = max(0, significant_digits-1-sx_om)
+            s   = _format(dec) % (name, x, sx, units)
 
         else:
-            s = _format(dec+n, scientific_notation=True) % (name, x/10**n, sx/10**n, n, units)
+            dec = max(0, significant_digits-1-sx_om+x_om)
+            s   = _format(dec, scientific_notation=True) % (name, x/10**x_om, sx/10**x_om, x_om, units)
+
+        # print("    x_om:", x_om)
+        # print("   sx_om:", sx_om, x_om-sx_om)
+        # print("     dec:", dec)
+        # print("     sx:", sx)
+        # print(" sig dig:", significant_digits)
+        # print(s)
+        # print()
 
     if latex: s = translate_measure(s)
 
