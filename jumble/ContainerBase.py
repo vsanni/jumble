@@ -20,10 +20,10 @@ class ContainerBase():
     def __str__(self):
         s = ""
         if self.__dict__:
-            n = len(max(list(self.keys()), key=len))
-            Format = "%-"+str(n)+"s: "
+            n       = len(max(list(self.keys()), key=len))
+            format_ = "%-"+str(n)+"s: "
             for k, v in sorted(self.items()):
-                s += Format % k
+                s += format_ % k
                 s += v.__repr__()+"\n" if isinstance(v, ContainerBase) else str(v) + "\n"
         return s
 

@@ -120,7 +120,7 @@ class Container(ContainerBase):
 
 
 
-    def save(self, filename, dataonly=False):
+    def save(self, filename, dataonly=True):
 
         extension = filename.split(".")[-1].lower()
 
@@ -160,6 +160,6 @@ class Container(ContainerBase):
         else:
             raise ValueError("%s.load: cannot recognize extension \"%s\"" % (self.__module__, extension))
 
-        self._clean_up()
+        _clean_up(self)
 
         return self
