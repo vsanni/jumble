@@ -8,7 +8,6 @@ import re
 import numpy as np
 
 from math import log10, floor, isnan
-from jumble.latex import translate_measure
 import jumble.type_extra as tye
 
 def _prefixed_dict_create(symbols, prefixes, standard_units = True, reciprocal=False):
@@ -84,7 +83,7 @@ def idBu(X): return 10.0**(np.asarray(X)/10.0-6) # ref to 1 uW
 #%% cm^-1 units
 def m_to_cm_1(x): return .01/x
 def cm_1_to_m(x): return .01/x
-    
+
 #%% meters to mils
 def m_to_mils(x): return x/25.4e-6
 def mils_to_m(x): return x*25.4e-6
@@ -103,20 +102,20 @@ def convert_pressure(x, old_units, new_units):
                                   [101325.0/760 , 1/1.0e5*101325.0/760, 1.0                    , 1/760.0         , 0.000145038*101325.0/760], #Torr
                                   [101325.0     , 1/1.0e5*101325.0    , 760.0                  , 1.0             , 0.000145038*101325.0    ], #atm
                                   [1/0.000145038, 1/1.0e5/0.000145038 , 760./101325.0          , 1/101325.0      , 1.0                     ], #psi
-                                 ]) 
-    
-        
+                                 ])
+
+
     d = {"Pa":0, "bar":1, "Torr":2, "atm":3, "psi":4}
 
     return np.asarray(x) * pressure_conv_mat[d[old_units], d[new_units]]
- 
+
 
 #%% find stuff
 def find_base(s):
- 
+
     n = len(s)
     for se in symbols_exception+symbols:
-        m = len(se)        
+        m = len(se)
         if s[max(0,n-m):] == se: return se
 
     return None
@@ -130,8 +129,8 @@ def find_prefix_factor(s):
 
 
 def find(s, pre_reg_expr=None, post_reg_expr=None):
-    
-    if pre_reg_expr  is not None and post_reg_expr is not None: reg_expr = pre_reg_expr+"%s"+post_reg_expr 
+
+    if pre_reg_expr  is not None and post_reg_expr is not None: reg_expr = pre_reg_expr+"%s"+post_reg_expr
     elif pre_reg_expr  is not None                            : reg_expr = pre_reg_expr+"%s"
     elif post_reg_expr is not None                            : reg_expr = "%s"+post_reg_expr
     else                                                      : reg_expr = "%s"
@@ -144,22 +143,22 @@ def find(s, pre_reg_expr=None, post_reg_expr=None):
 
 
 def breakdown(s, pre_reg_expr=None, post_reg_expr=None):
-    
-    if pre_reg_expr  is not None or post_reg_expr is not None: 
+
+    if pre_reg_expr  is not None or post_reg_expr is not None:
        s= find(s, pre_reg_expr, post_reg_expr)
-       if s is None: 
+       if s is None:
            raise ValueError("units.breakdown: error, cannot recognize units \""+str(s)+"\"")
 
     base_unit = find_base(s)
     if base_unit is None:
         raise ValueError("units.breakdown: error, cannot recognize units \""+str(s)+"\"")
-    
+
     prefix    = s[:-len(base_unit)]
-    if prefix == ""               : prefix_factor = 1 
+    if prefix == ""               : prefix_factor = 1
     elif prefix in prefixes.keys(): prefix_factor = prefixes[prefix]
-    
-    return base_unit, prefix, prefix_factor    
-    
+
+    return base_unit, prefix, prefix_factor
+
 
 
 #%% convert units
@@ -168,9 +167,9 @@ def convert(x, old_units="", new_units=""):
 
     o_bu, o_px, o_sf = breakdown(old_units)
     n_bu, n_px, n_sf = breakdown(new_units)
-    
+
     sf = o_sf/n_sf
-    
+
     if   o_bu == "dB"   and n_bu == "W"   : return  idB(x)*sf
     elif o_bu == "dBm"  and n_bu == "W"   : return idBm(x)*sf
     elif o_bu == "dBu"  and n_bu == "W"   : return idBu(x)*sf
@@ -197,8 +196,8 @@ def prefix(x):
     elif  n > n_max: n =n_max
 
     k = prefixes_keys[n]
-    
-    return k if k != "_" else "", 1/prefixes[k], om 
+
+    return k if k != "_" else "", 1/prefixes[k], om
 
 
 
@@ -207,7 +206,7 @@ def _prefixed_base_value(x, mode="range"):
     def range_(x):
         if tye.is_iterable(x): return .5*(x[0]+x[-1])
         else                 : return x
-        
+
     prefix_function = {"avg": np.mean, "min": np.min, "max": np.max, "range": range_}
 
     return prefix_function[mode](x)
@@ -243,8 +242,8 @@ def _prefixed_time(t, mode, standard_units):
     d = time_dict
 
     t0 = _prefixed_base_value(t, mode)
-    
-    if t0 < d["min"]*10 or  standard_units: 
+
+    if t0 < d["min"]*10 or  standard_units:
         prefixed_units, prefix_factor, om = prefix(t0)
         prefixed_units += "s"
 
@@ -265,7 +264,7 @@ def _prefixed_time(t, mode, standard_units):
 
 
 def prefixed(x, units, mode="range", standard_units=True, latex=False):
-    
+
     if units == "s":
         prefixed_x, prefixed_units, prefix_factor, om = _prefixed_time(x, mode, standard_units)
 
@@ -273,8 +272,8 @@ def prefixed(x, units, mode="range", standard_units=True, latex=False):
         s, prefix_factor, om = prefix(_prefixed_base_value(x, mode))
         prefixed_units       = s+units
         prefixed_x           = np.asarray(x)*prefix_factor
-        
-    if latex: 
+
+    if latex:
         if prefixed_units[0] == "u": prefixed_units = "\\mu "+prefixed_units[1:]
 
     return prefixed_x, prefixed_units, prefix_factor, om
@@ -283,27 +282,46 @@ def prefixed(x, units, mode="range", standard_units=True, latex=False):
 #%% measure
 def measure(name, x, sx=None, units="", significant_digits=4, scientific_notation_digits_threshold=3, prefix_units=True, latex=False):
 
-    def _format(dec, scientific_notation=False): 
-        s = "%." + str(dec) + "f" if dec >=0  else "%.f"    
+    def translate_measure(s):
+
+        if "x" in s: s_close_parentesis_spacing = ""
+        else       : s_close_parentesis_spacing = "\\,"
+
+        s = s.replace("("  , "\\left(" )
+        s = s.replace(")"  , "\\right)"+s_close_parentesis_spacing)
+        s = s.replace("±"  , "\\pm"    )
+        s = s.replace("x"  , "\\cdot"  )
+        s = s.replace("10^", "10^{"    )
+        s = s.replace(" u" , " \\mu "   )
+        s = s.replace("%%" , " \\%"     )
+
+        if "10^" in s:
+            n = s.rfind(" ")
+            s = s[:n]+"}\\,"+s[n:]
+
+        return s
+
+    def _format(dec, scientific_notation=False):
+        s = "%." + str(dec) + "f" if dec >=0  else "%.f"
         if scientific_notation: return "%s = ("+s+" ± " +s+ ") x 10^%d %s"
         else                  : return "%s = ("+s+" ± " +s+ ") %s"
 
     if sx is None:
-        s = ("%g" % x).lower().replace("e", "x10^").replace("+", "")        
+        s = ("%g" % x).lower().replace("e", "x10^").replace("+", "")
         s = "%s = %s %s" % (name, s, units)
 
-    else:        
+    else:
         x_om  = order_of_magnitude(x)
         sx_om = order_of_magnitude(sx)
         sx    = round(sx,-(sx_om-significant_digits+1))
-        
+
         if prefix_units:
             c_prefix, sf, _ = prefix(x)
             sx_om           = order_of_magnitude(sx*sf)
             dec             = max(0, significant_digits-1-sx_om)
             s               = _format(dec) % (name, x*sf, sx*sf, c_prefix+units)
 
-        elif  -scientific_notation_digits_threshold < x_om < scientific_notation_digits_threshold:            
+        elif  -scientific_notation_digits_threshold < x_om < scientific_notation_digits_threshold:
             dec = max(0, significant_digits-1-sx_om)
             s   = _format(dec) % (name, x, sx, units)
 
