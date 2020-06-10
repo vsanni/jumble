@@ -7,14 +7,19 @@ Created on Tue Oct  9 20:56:33 2018
 
 from jumble.circular_buffer import CircularBuffer
 
-cb  = CircularBuffer(size= 3, book_keeping=False)
+cb  = CircularBuffer(size= 3, mode="overlap_check")
 
-for n in range(10):
-    cb.put(n)
+cb.print()
+
+print("----"*20)
+
+for n in range(3+2):
+    print("putting:",n+10)
+    cb.put(n+10)
     cb.print()
 
-print("-"*10)
+print("----"*20)
 
-for n in range(10):
-    print(cb.get())
+for n in range(5):
+    print("get          :", cb.get())
     cb.print()
