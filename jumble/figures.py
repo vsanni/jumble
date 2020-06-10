@@ -4,17 +4,14 @@ Created on Sat Nov 15 16:57:25 2014
 @author: vsanni
 """
 
-from __future__ import print_function
-
 import os
-from math import sqrt
-
-import matplotlib.pyplot as pl
-
-from matplotlib import _pylab_helpers
-import jumble.file_location as floc
-from jumble.Miscellany import vprint
+from jumble.vprint     import vprint
 from jumble.type_extra import length
+from math              import sqrt
+
+import jumble.file_location as floc
+import matplotlib.pyplot    as pl
+from matplotlib        import _pylab_helpers as plh
 
 import seaborn as sns
 sns.set(style="darkgrid")
@@ -25,7 +22,7 @@ def current():
     Gets figure reference to the current figure if exist.
     """
 
-    figures_manager = _pylab_helpers.Gcf.get_active()
+    figures_manager = plh.Gcf.get_active()
     if figures_manager is not None: return figures_manager.canvas.figure
     else                          : return None
 
@@ -61,12 +58,12 @@ def axes(N=1, sharex=False, sharey=False, squeeze=True, subplot_kw=None, gridspe
 
 def close(figure=None):
     if figure is None: figure = current()
-    _pylab_helpers.Gcf.destroy_fig(figure)
+    plh.Gcf.destroy_fig(figure)
 
 
 
 def close_all():
-    _pylab_helpers.Gcf.destroy_all()
+    plh.Gcf.destroy_all()
 
 
 
@@ -129,18 +126,18 @@ def draw(figure=None):
 
 
 def figure_axis_resolve(axis=None,*v, **kv):
-    
+
     if "figsize" not in kv.keys(): kv["figsize"] = (9.5,5)
-    
+
     if axis is None: return axes(*v,**kv)
     else           : return current(), axis
-    
 
 
-def plot(x=None,y=None, axis= None, xlabel = None, ylabel= None, title= None, **kv):
-    
+
+def plot(x=None, y=None, axis= None, xlabel = None, ylabel= None, title= None, **kv):
+
     fig, ax = figure_axis_resolve(axis,figsize=(9.5,5))
-    
+
     if x is None: ax.plot(y, **kv)
     else        : ax.plot(x, y, **kv)
     ax.grid(True)
