@@ -103,20 +103,9 @@ def is_numeric_string_list(v, evaluate=False):
     return True
 
 
-def list_exact_find(list_, t, mode='all'):
-
-     found = [i for i, s in enumerate(list_) if s == t]
-
-     if   found        == []     : return None
-     elif mode.lower() == 'first': return found[0]
-     elif mode.lower() == 'last' : return found[-1]
-     elif mode.lower() == 'all'  : return found
-     else                        : raise Exception("list_exact_find: unknown search mode, valid modes are \"first\", \"all\", or \"last\"" )
-
-
 def list_find(list_, t, mode='all'):
 
-    found = [ [i, s.find(t)] for i, s in enumerate(list_) if t in s]
+    found = [ [i, string_find_all(s,t)] for i, s in enumerate(list_) if t in s]
 
     if   found        == []     : return None
     elif mode.lower() == 'first': return found[0]
@@ -129,6 +118,7 @@ def list_find(list_, t, mode='all'):
 def list_to_string(list_, quotes="\"", separator=", "):
     s = quotes+separator+quotes
     return quotes+s.join([str(v) for v in list_])+quotes
+
 
 
 def range_distribute(n,p):
@@ -145,6 +135,21 @@ def range_distribute(n,p):
     s, e = n[ :-1], n[1:  ]
 
     return s, e
+
+
+
+def string_find_all(s,t):
+
+    k = s.find(t)
+    if k == -1: return []
+    n = [k]
+    while True:
+        s = s[k+1:]
+        k = s.find(t)
+        if k == -1: break
+        n.append(k+n[-1]+1)
+
+    return n
 
 
 
