@@ -8,10 +8,11 @@ import jumble.roots as roots
 
 def f(x): return (x-2)*(x+7)
 
-fig, axis, _,_ = roots.plot_set(f, 0, 5, title="newton Finding Roots Method")
+roots.figs.close_all()
 
-print("newton:")
+fig, axis, _,_ = roots.plot_set(f, 0, 5, title="Newton Finding Roots Method")
+
+print("Newton:")
 print(roots.newton(f,  0, 5, verbose=True, axis =axis))
 print(roots.newton(f,-10, 0))
-print(roots.newton(f,-10, 5))
-print(roots.newton(f,  5,15))
+print(roots.newton(f,  4, 10)) # cannot work sign f(4) == sign f(8)

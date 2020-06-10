@@ -1,5 +1,5 @@
 """
-$HeadURL: file:///home/svn/python/lib/Miscellany.py $
+$HeadURL: file:///home/svn/python/lib/vprint.py $
 $Date: 2014-06-06 19:15:23 -0700 (Fri, 06 Jun 2014) $
 $Revision: 13 $
 $Author: vsanni $
@@ -12,6 +12,15 @@ import numpy as np
 import jumble.figures as figs
 
 def _error(s): raise ValueError(s)
+
+def interval_check(f, a, b):
+    fa = f(a)
+    fb = f(b)
+
+    if fa*fb > 0:
+        _error("roots.interval_check: error, intial function values from the interval extremities %g, and %g have same sign " % (a,b))
+
+    return fa, fb
 
 
 def secant(f, a, b, tol=1.e-6, N=100, verbose=False, axis= None):
@@ -35,21 +44,27 @@ def secant(f, a, b, tol=1.e-6, N=100, verbose=False, axis= None):
 
     a      = float(a)
     b      = float(b)
-    abs_fx = abs(f(a))
-    for n in range(1, N+1):
-        Df     = f(b)-f(a)
-        if Df == 0: _error("bisection: error, failed to converge, Df is zero, error %e , tolerance %e, iterations %d" % ( abs_fx, tol, n ) )
-        x      = b-f(b)*(b-a)/Df
-        a      = b
-        b      = x
-        abs_fx = abs(f(x))
 
-        if verbose         : print("%3d, %21.14e, %21.14e" % (n, x, f(x)) )
-        if axis is not None: _plot(axis, f,a,b, n)
+    fa, _ = interval_check(f, a, b)
+
+    abs_fx = abs(fa)
+    for n in range(1, N+1):
+
+        Df     = f(b)-f(a)
+        if   a == b:
+            _error("roots.bisection: error, failed to converge, Df is zero, error %e , tolerance %e, iterations %d" % ( abs_fx, tol, n ) )
+        else:
+            x      = b-f(b)*(b-a)/Df
+            a      = b
+            b      = x
+            abs_fx = abs(f(x))
+
+            if verbose         : print("%3d, %21.14e, %21.14e" % (n, x, f(x)) )
+            if axis is not None: _plot(axis, f,a,b, n)
 
         if abs_fx <= tol: break
 
-    if abs_fx > tol: _error("bisection: error, failed to converge, error %e , tolerance %e, iterations %d" % ( abs_fx, tol, n ) )
+    if abs_fx > tol: _error("roots.bisection: error, failed to converge, error %e , tolerance %e, iterations %d" % ( abs_fx, tol, n ) )
 
     return x, n
 
@@ -82,6 +97,8 @@ def bisection(f, a, b, tol=1.e-6, N=100, verbose=False, axis=None):
     Example: x, n = root_bisection(sin, -1, 2, 1.e-8, 100)
     """
 
+    interval_check(f, a, b)
+
     for n in range(1, N+1):
         x  = (a+b)/2.0
 
@@ -96,7 +113,7 @@ def bisection(f, a, b, tol=1.e-6, N=100, verbose=False, axis=None):
 
         if abs(fx) <= tol: break
 
-    if abs(fx) > tol: _error("bisection: error, failed to converge, error %e , tolerance %e, iterations %d" % ( abs(fx), tol, n ) )
+    if abs(fx) > tol: _error("root.bisection: error, failed to converge, error %e , tolerance %e, iterations %d" % ( abs(fx), tol, n ) )
 
     return x, n
 
@@ -132,25 +149,26 @@ def newton(f, a, b, tol=1.e-6, N=100, df_dx=None, verbose=False, axis=None):
         """
         return 0.5*( f(x+Dx)-f(x-Dx) )/Dx
 
+    interval_check(f, a, b)
 
     if df_dx is None: df_dx = central_difference_df_dx
     try:
         x  = 0.5*(a+b)
         dx = x/100
         for n in range(1, N+1):
-            Dx = f(x)/df_dx(f, x, dx)
+            Dx = f(x)/(df_dx(f, x, dx)+1e-6)
             if verbose         : print("%3d, %21.14e, %21.14e" % (n, x, f(x)) )
             if axis is not None: _plot(axis, f, x, x-Dx, n)
             x = x-Dx
             if abs(f(x)) <= tol: break
     except:
-        _error("newton: error, failed to converge, error %e , tolerance %e, iterations %d" % ( abs(f(x)), tol, n ) )
+        _error("roots.newton: error, failed to converge, error %e , tolerance %e, iterations %d" % ( abs(f(x)), tol, n ) )
 
     n += 1
     if verbose         : print("%3d, %21.14e, %21.14e" % (n, x, f(x)) )
     if axis is not None: _plot(axis, f, a, b, n)
 
-    if abs(f(x)) > tol: _error("newton: error, failed to converge, error %e , tolerance %e, iterations %d" % ( abs(f(x)), tol, n ) )
+    if abs(f(x)) > tol: _error("roots.newton: error, failed to converge, error %e , tolerance %e, iterations %d" % ( abs(f(x)), tol, n ) )
 
     return x, n
 
