@@ -60,9 +60,9 @@ def savitzky_golay(y, window=31, order=1, deriv=0, rate=1):
     Examples
     --------
     t = np.linspace(-4, 4, 500)
-    
+
     y = np.exp(-t ** 2) + np.random.normal(0, 0.05, t.shape)
-    
+
     ys = savitzky_golay(y, window=31, order=5)
 
     References
@@ -361,31 +361,31 @@ def lock_in(t, x, f0 =1.0, phi0=0.0, order=2, fc=None, zero_phase=True):
 
 
 #---------------------------------------------------------
-def envelope(x, y, Dy=0.0, MaxMin=0):
+def envelope(x, y, Dy=0.0, max_min=0):
     """
-    synopsis: envelope(x, y, Dy=0.0, MaxMin=0)
+    synopsis: envelope(x, y, Dy=0.0, max_min=0)
 
        Y
-       MaxMin
+       max_min
     """
 
-    y0         = y[0]
-    LookForMax = y[1] > y0
+    y0           = y[0]
+    look_for_max = y[1] > y0
 
     X, Y, N = [], [], []
 
     for n, _y in enumerate(y):
-         if LookForMax:
+         if look_for_max:
              if Dy < y0 - _y:
-               LookForMax = False
-               if MaxMin != 2:
+               look_for_max = False
+               if max_min != 2:
                     N.append(n-1)
                     X.append(x[n-1])
                     Y.append(y0)
          else:
              if Dy < _y - y0:
-                LookForMax = True
-                if MaxMin != 1:
+                look_for_max = True
+                if max_min != 1:
                     N.append(n-1)
                     X.append(x[n-1])
                     Y.append(y0)
@@ -420,9 +420,9 @@ def MaxSkim(x, y, Dx=0.0):
 
 
 
-def PeakFind(x, y, Dx=0.0, Dy=0.0, Filter = ("MovingAverage", 5)):
+def PeakFind(x, y, Dx=0.0, Dy=0.0, Filter = ("moving_average", 5)):
 
-    if (Filter[0] == "MovingAverage"):
+    if (Filter[0] == "moving_average"):
        y0 = moving_average(y, Filter[1])
        x0 = x[0:len(y0)]+(x[1]-x[0])*Filter[1]
 
@@ -434,7 +434,7 @@ def PeakFind(x, y, Dx=0.0, Dy=0.0, Filter = ("MovingAverage", 5)):
        y0 = y
        x0 = x
 
-    x1, y1, n1 = envelope(x0, y0, Dy, MaxMin=1)
+    x1, y1, n1 = envelope(x0, y0, Dy, max_min=1)
     x2, y2, n2 = MaxSkim(x1, y1, Dx)
 
     return x2, y2, n2, x1, y1, n1, x0, y0
