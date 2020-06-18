@@ -13,7 +13,7 @@ import jumble.figures as figs
 
 def _error(s): raise ValueError(s)
 
-def interval_check(f, a, b):
+def _interval_check(f, a, b):
     fa = f(a)
     fb = f(b)
 
@@ -45,7 +45,7 @@ def secant(f, a, b, tol=1.e-6, N=100, verbose=False, axis= None):
     a      = float(a)
     b      = float(b)
 
-    fa, _ = interval_check(f, a, b)
+    fa, _ = _interval_check(f, a, b)
 
     abs_fx = abs(fa)
     for n in range(1, N+1):
@@ -97,7 +97,7 @@ def bisection(f, a, b, tol=1.e-6, N=100, verbose=False, axis=None):
     Example: x, n = root_bisection(sin, -1, 2, 1.e-8, 100)
     """
 
-    interval_check(f, a, b)
+    _interval_check(f, a, b)
 
     for n in range(1, N+1):
         x  = (a+b)/2.0
@@ -119,7 +119,7 @@ def bisection(f, a, b, tol=1.e-6, N=100, verbose=False, axis=None):
 
 
 
-def newton(f, a, b, tol=1.e-6, N=100, df_dx=None, verbose=False, axis=None):
+def newton(f, a, b, tol=1.e-6, N=100, df_dx=None, verbose=False, axis=None, interval_check=True):
     """
     Purpose: finds a root of a function using the Newton's method
 
@@ -149,7 +149,7 @@ def newton(f, a, b, tol=1.e-6, N=100, df_dx=None, verbose=False, axis=None):
         """
         return 0.5*( f(x+Dx)-f(x-Dx) )/Dx
 
-    interval_check(f, a, b)
+    if interval_check: _interval_check(f, a, b)
 
     if df_dx is None: df_dx = central_difference_df_dx
     try:
