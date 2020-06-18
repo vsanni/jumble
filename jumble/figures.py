@@ -11,7 +11,8 @@ from math              import sqrt
 
 import jumble.file_location as floc
 import matplotlib.pyplot    as pl
-from matplotlib        import _pylab_helpers as plh
+from matplotlib           import _pylab_helpers as plh
+from mpl_toolkits.mplot3d import Axes3D
 
 import seaborn as sns
 sns.set(style="darkgrid")
@@ -148,3 +149,11 @@ def plot(x=None, y=None, axis= None, xlabel = None, ylabel= None, title= None, *
     if title  is not None  : ax.set_title(title)
 
     return fig, ax
+
+
+def volume():
+
+ fig  = pl.figure()
+ axis = fig.gca(projection='3d')
+
+ return fig , axis
