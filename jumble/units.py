@@ -188,17 +188,14 @@ def convert(x, old_units="", new_units=""):
 
 def prefix(x):
 
-    om = order_of_magnitude(x)
-
-    n     = (om+24) // 3
+    n     = (order_of_magnitude(x)+24) // 3
     n_max = len(prefixes_keys)-1
     if    n < 0    : n = 0
     elif  n > n_max: n =n_max
 
     k = prefixes_keys[n]
 
-    return k if k != "_" else "", 1/prefixes[k], om
-
+    return k if k != "_" else "", 1/prefixes[k]
 
 
 def _prefixed_base_value(x, mode="range"):
@@ -209,7 +206,8 @@ def _prefixed_base_value(x, mode="range"):
 
     prefix_function = {"avg": np.mean, "min": np.min, "max": np.max, "range": range_}
 
-    return prefix_function[mode](x)
+    if    mode in prefix_function.keys(): return prefix_function[mode](x)
+    elif  mode in prefixes.keys()       : return None
 
 
 
@@ -243,7 +241,11 @@ def _prefixed_time(t, mode, standard_units):
 
     t0 = _prefixed_base_value(t, mode)
 
-    if t0 < d["min"]*10 or  standard_units:
+    if t0 is None:
+        prefix_factor  = 1/prefixes[mode]
+        prefixed_units = mode+standard_units
+
+    elif t0 < d["min"]*10 or  standard_units:
         prefixed_units, prefix_factor, om = prefix(t0)
         prefixed_units += "s"
 
@@ -256,27 +258,28 @@ def _prefixed_time(t, mode, standard_units):
         elif t0 >= d["year"   ]    and t0 < d["century"  ]   : prefixed_units = "yr."
         elif t0 >= d["century"]    and t0 < d["millenium"]   : prefixed_units = "c."
         else                                                 : prefixed_units = "m."
-        om            = order_of_magnitude(t0)
         prefix_factor = 1/d[prefixed_units]
 
-    return np.asarray(t)*prefix_factor, prefixed_units, prefix_factor, om
+    return np.asarray(t)*prefix_factor, prefixed_units, prefix_factor
 
 
 
 def prefixed(x, units, mode="range", standard_units=True, latex=False):
 
     if units == "s":
-        prefixed_x, prefixed_units, prefix_factor, om = _prefixed_time(x, mode, standard_units)
+        prefixed_x, prefixed_units, prefix_factor = _prefixed_time(x, mode, standard_units)
 
     else:
-        s, prefix_factor, om = prefix(_prefixed_base_value(x, mode))
-        prefixed_units       = s+units
-        prefixed_x           = np.asarray(x)*prefix_factor
+        t = _prefixed_base_value(x, mode)
+        if t is None : s, prefix_factor = mode, 1/prefixes[mode]
+        else         : s, prefix_factor = prefix(t)
+        prefixed_units = s+units
+        prefixed_x     = np.asarray(x)*prefix_factor
 
     if latex:
         if prefixed_units[0] == "u": prefixed_units = "\\mu "+prefixed_units[1:]
 
-    return prefixed_x, prefixed_units, prefix_factor, om
+    return prefixed_x, prefixed_units, prefix_factor
 
 
 #%% measure
@@ -316,10 +319,10 @@ def measure(name, x, sx=None, units="", significant_digits=4, scientific_notatio
         sx    = round(sx,-(sx_om-significant_digits+1))
 
         if prefix_units:
-            c_prefix, sf, _ = prefix(x)
-            sx_om           = order_of_magnitude(sx*sf)
-            dec             = max(0, significant_digits-1-sx_om)
-            s               = _format(dec) % (name, x*sf, sx*sf, c_prefix+units)
+            c_prefix, sf = prefix(x)
+            sx_om        = order_of_magnitude(sx*sf)
+            dec          = max(0, significant_digits-1-sx_om)
+            s            = _format(dec) % (name, x*sf, sx*sf, c_prefix+units)
 
         elif  -scientific_notation_digits_threshold < x_om < scientific_notation_digits_threshold:
             dec = max(0, significant_digits-1-sx_om)
