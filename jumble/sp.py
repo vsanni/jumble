@@ -13,6 +13,7 @@ import jumble.vprint as my
 from jumble.type_extra import length, is_whole
 
 import numpy as np
+from  scipy   import signal
 
 from scipy import signal as signal
 from math import factorial
@@ -420,14 +421,22 @@ def MaxSkim(x, y, Dx=0.0):
 
 
 
-def PeakFind(x, y, Dx=0.0, Dy=0.0, Filter = ("moving_average", 5)):
+def peak_find(x, y, Dx=0.0, Dy=0.0, filter_data = ("moving_average", 5)):
 
-    if (Filter[0] == "moving_average"):
-       y0 = moving_average(y, Filter[1])
-       x0 = x[0:len(y0)]+(x[1]-x[0])*Filter[1]
+    if (filter_data[0] == "moving_average"):
+       y0 = moving_average(y, filter_data[1])
+       x0 = x[0:len(y0)]+(x[1]-x[0])*filter_data[1]
 
-    elif (Filter[0] == "savitzky_golay"):
-       y0 = savitzky_golay(y, *Filter[1:])
+    elif (filter_data[0] == "savitzky_golay"):
+       y0 = savitzky_golay(y, *filter_data[1:])
+       x0 = x
+
+    elif (filter_data[0] == "lfilter"):
+       y0 = signal.lfilter(b=filter_data[1], a=filter_data[2], x=y, zi=filter_data[3])
+       x0 = x
+
+    elif (filter_data[0] == "filtfilt"):
+       y0 = signal.filtfilt(b=filter_data[1], a=filter_data[2], x=y, zi=filter_data[3])
        x0 = x
 
     else:
